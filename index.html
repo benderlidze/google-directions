@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Directions Service</title>
+</head>
+
+<style>
+    /* Always set the map height explicitly to define the size of the div
+       * element that contains the map. */
+    #map {
+        height: 100%;
+    }
+
+    /* Optional: Makes the sample page fill the window. */
+    html,
+    body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+    }
+
+    #floating-panel {
+        position: absolute;
+        top: 10px;
+        left: 25%;
+        z-index: 5;
+        background-color: #fff;
+        padding: 5px;
+        border: 1px solid #999;
+        text-align: center;
+        font-family: "Roboto", "sans-serif";
+        line-height: 30px;
+        padding-left: 10px;
+    }
+
+    #warnings-panel {
+        width: 100%;
+        height: 10%;
+        text-align: center;
+    }
+</style>
+
+<body>
+
+    <div id="map"></div>
+
+    <script>
+
+        let map;
+        function initMap() {
+            map = new google.maps.Map(document.getElementById('map'), {
+                zoom: 7,
+                center: { lat: 56.90463526421472, lng: 24.140839740944493 }
+            });
+            directionsService = new google.maps.DirectionsService;
+            directionsDisplay = new google.maps.DirectionsRenderer({
+                map: map
+            });
+
+            const points = [
+                { name: "Some name", lat: 57.4021935708513, lng: 21.597504780006993 },
+                { name: "Some name", lat: 57.224200154459766, lng: 22.564301655006993 },
+                { name: "Some name", lat: 56.937614700457985, lng: 23.618989155006993 },
+                { name: "Some name", lat: 56.94959999818056, lng: 24.157319233131993 },
+            ]
+            const points1 = [
+                { name: "Some name", lat: 56.54175518824178, lng: 21.168350905301523 },
+                { name: "Some name", lat: 56.937614700457985, lng: 23.618989155006993 },
+            ]
+
+            calculateAndDisplayRoute(directionsService, directionsDisplay, points, 'blue');
+            calculateAndDisplayRoute(directionsService, directionsDisplay, points1, 'red');
+
+
+            google.maps.event.addListener(map, 'click', function (event) {
+                console.log(event.latLng.toString())
+            });
+        }
+
+        function calculateAndDisplayRoute(directionsService, directionsDisplay, points, color) {
+
+
+            const origin = points.shift()
+            const destination = points.pop()
+            const waypoints = points.map(i => {
+                return {
+                    location: { lat: i.lat, lng: i.lng },
+                    stopover: false
+                }
+            })
+
+            console.log('origin', origin, destination, waypoints);
+
+            directionsService.route({
+                origin,
+                destination,
+                avoidTolls: true,
+                avoidHighways: false,
+                waypoints,
+                optimizeWaypoints: true,
+                travelMode: google.maps.TravelMode.DRIVING
+            }, function (response, status) {
+                if (status == google.maps.DirectionsStatus.OK) {
+                    //directionsDisplay.setDirections(response);
+
+                    const line = response.routes[0].overview_path.map(i => {
+                        return [i.lng(), i.lat()]
+                    })
+                    const geojson = {
+                        "type": "FeatureCollection",
+                        "features": [
+                            {
+                                "type": "Feature",
+                                "properties": {
+                                    'color': color
+                                },
+                                "geometry": {
+                                    "type": "LineString",
+                                    "coordinates": line
+                                }
+                            }
+                        ]
+                    }
+
+                    map.data.addGeoJson(geojson);
+                    map.data.setStyle(function (feature) {
+                        var color = feature.getProperty('color');
+                        return {
+                            strokeColor: color,
+                            strokeWeight: 10
+                        };
+                    });
+                    console.log('geojson ', geojson);
+                    console.log('geojson ', JSON.stringify(geojson));
+
+                } else {
+                    window.alert('Directions request failed due to ' + status);
+                }
+            });
+        }
+
+//
+    </script>
+    <script
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB1ooSK3Ml9TnKdjk6EVdAivi405-7bmd8&callback=initMap&v=weekly"
+        async></script>
+</body>
+
+</html>
